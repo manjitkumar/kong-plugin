@@ -68,9 +68,9 @@ function plugin:access(plugin_conf)
   -- your custom code here
   kong.log.inspect(plugin_conf)   -- check the logs for a pretty-printed config!  
   
-  -- invoke myplugin custom execute for acess phase of kong request
+  -- invoke myplugin custom execute during access phase of kong request
   access.execute(plugin_conf)
-end --]]
+end
 
 
 --[[ runs in the 'header_filter_by_lua_block'

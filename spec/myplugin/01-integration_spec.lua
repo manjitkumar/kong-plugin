@@ -76,9 +76,9 @@ for _, strategy in helpers.all_strategies() do if strategy == "postgres" then
 
 
     describe("request", function()
-      -- using 'Content-Type' header from mocked auth server response 
-      -- and forwarding 'X-Proxy-Header' with the value of 'Content-Type' header
-      it("gets a 'Content-Type' header", function()
+      -- using 'MockResponseHeader' header from mocked auth server response 
+      -- and forwarding 'X-Proxy-Header' with the value of 'MockResponseHeader' header
+      it("gets a 'MockResponseHeader' header", function()
         local r = client:get("/200", {
           headers = {
             host = "httpstat.us",
@@ -91,7 +91,7 @@ for _, strategy in helpers.all_strategies() do if strategy == "postgres" then
         -- now check the upstream request to have the header
         local header_value = assert.request(r).has.header("X-Proxy-Header")
         -- validate the value of that header
-        assert.equal("aMockedValue", header_value)
+        assert.equal("any-mocked-value", header_value)
       end)
     end)
   

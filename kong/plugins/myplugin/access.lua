@@ -1,12 +1,26 @@
 
 local http = require "resty.http"
+local kong = kong
+local cache = kong.cache
 
 local _M = {}
 
 
 -- Create a function to cache results for config based ttl
--- local function get_token_value(config)
---  @todo:
+-- Work In Progress
+-- local function get_token_value(config, token)
+--     local value, err = cache:get(token, { ttl = config.ttl }, function()
+--       -- Retrieve the value from auth server if it's not in cache
+--       return validate_auth_token(token)
+--     end)
+  
+--     if err then
+--       kong.log.err("Error retrieving value from cache: ", err)
+--       return nil, err
+--     end
+
+--     return value
+--   end
 
 
 -- Create a function to validate the status-code-as-token
@@ -28,10 +42,6 @@ local function validate_auth_token(config, auth_token)
       ssl_verify = false -- disable SSL verification for testing purposes
     })
     
-    -- debug/inspect auth server response 
-    kong.log.inspect(res)
-    kong.log.inspect(res.headers)
-
     -- If there was an error with the request, log the error and return nil
     if not res then
       kong.log.err("Failed to make request to auth server: ", err)
@@ -73,7 +83,7 @@ function _M.execute(config)
   
     -- Set the proxy_header_to_forward
     kong.service.request.set_header(config.proxy_header_to_forward, parsed_header_value)
-    kong.log.debug("Parsed header value ", parsed_header_value)
+    kong.log.debug("Set parsed_header_value is: ", parsed_header_value)
   end
 
 return _M
