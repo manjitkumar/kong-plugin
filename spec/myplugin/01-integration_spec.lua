@@ -1,10 +1,9 @@
 local helpers = require "spec.helpers"
 
-
 local PLUGIN_NAME = "myplugin"
 
 
-for _, strategy in helpers.all_strategies() do if strategy ~= "cassandra" then
+for _, strategy in helpers.all_strategies() do if strategy == "postgres" then
   describe(PLUGIN_NAME .. ": (access) [#" .. strategy .. "]", function()
     local client
 
@@ -12,16 +11,23 @@ for _, strategy in helpers.all_strategies() do if strategy ~= "cassandra" then
 
       local bp = helpers.get_db_utils(strategy == "off" and "postgres" or strategy, nil, { PLUGIN_NAME })
 
-      -- Inject a test route. No need to create a service, there is a default
-      -- service which will echo the request.
-      local route1 = bp.routes:insert({
-        hosts = { "test1.com" },
+      -- create a service
+      local service = bp.services:insert({
+        name = "pyman-test-service",
+        url = "https://httpstat.us"
       })
+
+      -- create a route for the service
+      local route = bp.routes:insert({
+        hosts = { "httpstat.us" },
+        service = service,
+      })
+
       -- add the plugin to test to the route we created
       bp.plugins:insert {
         name = PLUGIN_NAME,
-        route = { id = route1.id },
-        config = {},
+        route = { id = route.id },
+        config = {}, -- override default config if neeeded
       }
 
       -- start kong
@@ -50,41 +56,44 @@ for _, strategy in helpers.all_strategies() do if strategy ~= "cassandra" then
     end)
 
 
-
     describe("request", function()
-      it("gets a 'hello-world' header", function()
-        local r = client:get("/request", {
+      it("gets a 'X-Code-As-Token' header", function()
+        local r = client:get("/200", {
           headers = {
-            host = "test1.com"
+            host = "httpstat.us",
+            ["X-Code-As-Token"] = "200",
+            ["Accept"] = "application/json",
           }
         })
         -- validate that the request succeeded, response status 200
         assert.response(r).has.status(200)
         -- now check the request (as echoed by mockbin) to have the header
-        local header_value = assert.request(r).has.header("hello-world")
+        local header_value = assert.request(r).has.header("X-Code-As-Token")
         -- validate the value of that header
-        assert.equal("this is on a request", header_value)
+        assert.equal("200", header_value)
       end)
     end)
 
 
-
-    describe("response", function()
-      it("gets a 'bye-world' header", function()
-        local r = client:get("/request", {
+    describe("request", function()
+      -- using 'MockResponseHeader' header from mocked auth server response 
+      -- and forwarding 'X-Proxy-Header' with the value of 'MockResponseHeader' header
+      it("gets a 'MockResponseHeader' header", function()
+        local r = client:get("/200", {
           headers = {
-            host = "test1.com"
+            host = "httpstat.us",
+            ["X-Code-As-Token"] = "200",
+            ["Accept"] = "application/json",
           }
         })
         -- validate that the request succeeded, response status 200
         assert.response(r).has.status(200)
-        -- now check the response to have the header
-        local header_value = assert.response(r).has.header("bye-world")
+        -- now check the upstream request to have the header
+        local header_value = assert.request(r).has.header("X-Proxy-Header")
         -- validate the value of that header
-        assert.equal("this is on the response", header_value)
+        assert.equal("any-mocked-value", header_value)
       end)
     end)
-
+  
   end)
-
 end end
